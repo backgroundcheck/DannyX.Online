@@ -36,12 +36,12 @@ export const SynthesisDashboard: React.FC<Props> = ({ state }) => {
   }, [audioAnalysis]);
 
   return (
-    <div className="w-full max-w-4xl bg-zinc-900/40 border border-zinc-800 rounded-3xl p-8 backdrop-blur-md" style={dynamicStyles}>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10">
+    <div className="w-full max-w-4xl bg-zinc-900/40 border border-zinc-800 rounded-[2rem] md:rounded-3xl p-6 md:p-8 backdrop-blur-md" style={dynamicStyles}>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 md:mb-10">
         {steps.map((step) => (
           <div key={step.id} className="flex flex-col items-center">
-            <div className={`w-3 h-3 rounded-full mb-3 ${step.done ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : step.active ? 'bg-blue-500 animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'bg-zinc-700'}`} />
-            <span className={`text-[10px] uppercase tracking-widest font-bold ${step.active || step.done ? 'text-white' : 'text-zinc-600'}`}>
+            <div className={`w-2 h-2 md:w-3 md:h-3 rounded-full mb-2 md:mb-3 ${step.done ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : step.active ? 'bg-blue-500 animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'bg-zinc-700'}`} />
+            <span className={`text-[8px] md:text-[10px] text-center uppercase tracking-widest font-black ${step.active || step.done ? 'text-white' : 'text-zinc-600'}`}>
               {step.label}
             </span>
           </div>
@@ -49,7 +49,7 @@ export const SynthesisDashboard: React.FC<Props> = ({ state }) => {
       </div>
 
       {isBusy && !state.videoUrl && (
-        <div className="mb-10">
+        <div className="mb-8 md:mb-10">
           <ProcessingHUD 
             isActive={isBusy} 
             baseStatus={isSynthesizingVideo ? "Master Synthesis" : "Neural Initialization"} 
@@ -58,7 +58,7 @@ export const SynthesisDashboard: React.FC<Props> = ({ state }) => {
       )}
 
       {audioAnalysis && !isBusy && !state.videoUrl && (
-        <div className="mb-10 grid grid-cols-2 md:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4">
+        <div className="mb-8 md:mb-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 animate-in fade-in slide-in-from-bottom-4">
           <StatBox label="BPM" value={audioAnalysis.bpm} />
           <StatBox label="Energy" value={audioAnalysis.energy} />
           <StatBox label="Spectral Centroid" value={`${audioAnalysis.spectralCentroid}Hz`} />
@@ -70,7 +70,7 @@ export const SynthesisDashboard: React.FC<Props> = ({ state }) => {
 
       {state.videoUrl && (
         <div className="animate-in fade-in zoom-in duration-700">
-           <div className="relative group rounded-3xl overflow-hidden border-2 border-zinc-100 shadow-2xl shadow-zinc-500/10 bg-black">
+           <div className="relative group rounded-2xl md:rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl shadow-zinc-500/10 bg-black">
               <video 
                 src={state.videoUrl} 
                 controls 
@@ -80,30 +80,20 @@ export const SynthesisDashboard: React.FC<Props> = ({ state }) => {
               />
               
               {/* Branded watermarks */}
-              <div className="absolute top-4 right-8 pointer-events-none z-20">
+              <div className="absolute top-2 right-4 md:top-4 md:right-8 pointer-events-none z-20">
                 <div 
-                  className="px-3 py-1 font-black text-sm tracking-tighter uppercase motion-blur-logo opacity-60 group-hover:opacity-100 transition-opacity"
+                  className="px-2 md:px-3 py-0.5 md:py-1 font-black text-[10px] md:text-sm tracking-tighter uppercase motion-blur-logo opacity-60 group-hover:opacity-100 transition-opacity"
                   data-text="DANNYX.ONLINE"
                 >
                   DANNYX.ONLINE
                 </div>
               </div>
-              <div className="absolute bottom-8 right-8 pointer-events-none z-20">
-                <span 
-                  className="text-sm font-mono tracking-widest uppercase bg-black/40 px-3 py-1 backdrop-blur-md rounded border border-white/5 motion-blur-logo opacity-40 group-hover:opacity-80 transition-opacity"
-                  data-text="DANNYX.ONLINE"
-                >
-                  DANNYX.ONLINE
-                </span>
-              </div>
               
               {/* Dynamic Fluid Waveform Overlay */}
               <div className="absolute inset-0 pointer-events-none overflow-hidden z-10 flex items-end">
-                {/* Background Ambient Pulse */}
                 <div className="absolute inset-0 bg-purple-500/5 mix-blend-overlay animate-pulse-bpm opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
                 
-                <svg className="w-full h-48 opacity-[var(--wave-opacity)] group-hover:opacity-80 transition-opacity duration-1000 filter hue-rotate-[var(--centroid-hue)]" viewBox="0 0 1000 100" preserveAspectRatio="none">
-                  {/* Layered bezier curves reacting to derived energy/BPM */}
+                <svg className="w-full h-24 md:h-48 opacity-[var(--wave-opacity)] group-hover:opacity-80 transition-opacity duration-1000 filter hue-rotate-[var(--centroid-hue)]" viewBox="0 0 1000 100" preserveAspectRatio="none">
                   <path 
                     className="fluid-path path-1" 
                     d="M0,70 C150,20 350,100 500,70 C650,40 850,120 1000,70 V100 H0 Z" 
@@ -142,7 +132,7 @@ export const SynthesisDashboard: React.FC<Props> = ({ state }) => {
               <a 
                 href={state.videoUrl} 
                 download="dannyx_synthesis.mp4"
-                className="px-10 py-4 bg-white text-black font-black uppercase tracking-widest hover:bg-zinc-200 transition-all rounded-full shadow-lg"
+                className="w-full sm:w-auto px-10 py-4 bg-white text-black font-black uppercase tracking-widest text-xs md:text-sm hover:bg-zinc-200 transition-all rounded-full shadow-lg text-center"
               >
                 Download Synthesis
               </a>
@@ -190,8 +180,8 @@ export const SynthesisDashboard: React.FC<Props> = ({ state }) => {
 };
 
 const StatBox = ({ label, value }: { label: string, value: string | number }) => (
-  <div className="bg-zinc-800/30 p-4 border border-zinc-800 rounded-xl">
-    <div className="text-[10px] text-zinc-500 uppercase tracking-widest mb-1 font-bold">{label}</div>
-    <div className="text-xl font-mono text-white overflow-hidden text-ellipsis whitespace-nowrap">{value}</div>
+  <div className="bg-zinc-800/30 p-3 md:p-4 border border-zinc-800 rounded-xl">
+    <div className="text-[9px] md:text-[10px] text-zinc-500 uppercase tracking-widest mb-1 font-black">{label}</div>
+    <div className="text-sm md:text-lg lg:text-xl font-mono text-white overflow-hidden text-ellipsis whitespace-nowrap">{value}</div>
   </div>
 );

@@ -5,6 +5,7 @@ import { ProcessingHUD } from './ProcessingHUD';
 
 export const VisualStudio: React.FC = () => {
   const [prompt, setPrompt] = useState('');
+  const [isRefined, setIsRefined] = useState(false);
   const [aspectRatio, setAspectRatio] = useState('16:9');
   const [orientation, setOrientation] = useState<'16:9' | '9:16'>('16:9');
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
@@ -12,11 +13,12 @@ export const VisualStudio: React.FC = () => {
   const [lastRawVideo, setLastRawVideo] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isAuditing, setIsAuditing] = useState(false);
+  const [isRefining, setIsRefining] = useState(false);
   const [auditResults, setAuditResults] = useState<string | null>(null);
   const [type, setType] = useState<'image' | 'video'>('image');
   
   // Refinement Parameters
-  const [targetLength, setTargetLength] = useState(8); // 8s or 15s
+  const [targetLength, setTargetLength] = useState(8); 
   const [encodingQuality, setEncodingQuality] = useState<'720p' | '1080p'>('1080p');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -43,12 +45,10 @@ export const VisualStudio: React.FC = () => {
         const url = await service.generateSeedImage(prompt, aspectRatio);
         setResultUrl(url);
       } else {
-        // Initial Generation
         const res = await service.synthesizeVideo(prompt, uploadedImage || undefined, orientation, encodingQuality);
         let finalUrl = res.url;
         let currentRaw = res.rawVideo;
 
-        // Temporal Extension if requested length > 8s
         if (targetLength > 8) {
           const extension = await service.extendVideo(currentRaw, prompt);
           finalUrl = extension.url;
@@ -78,47 +78,73 @@ export const VisualStudio: React.FC = () => {
     }
   };
 
+  const handleApplyRefinement = async () => {
+    if (!prompt || !auditResults) return;
+    setIsRefining(true);
+    try {
+      const newPrompt = await service.refineSynthesisPrompt(prompt, auditResults);
+      setPrompt(newPrompt);
+      setIsRefined(true);
+      setAuditResults(null);
+      // Visual feedback
+      const textarea = document.querySelector('textarea');
+      if (textarea) {
+        textarea.classList.add('animate-pulse');
+        setTimeout(() => textarea.classList.remove('animate-pulse'), 2000);
+      }
+    } catch (err: any) {
+      alert(`Refinement failed: ${err.message}`);
+    } finally {
+      setIsRefining(false);
+    }
+  };
+
   return (
-    <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in duration-700">
-      <div className="bg-zinc-900/40 border border-zinc-800 rounded-[2.5rem] p-10 backdrop-blur-xl">
-        <h2 className="text-xl font-bold mb-8 flex items-center justify-between">
+    <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 animate-in fade-in duration-700 px-4">
+      <div className="bg-zinc-900/40 border border-zinc-800 rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-10 backdrop-blur-xl">
+        <h2 className="text-lg md:text-xl font-bold mb-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
-             <span className="w-2.5 h-2.5 bg-blue-500 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+             <span className="w-2 md:w-2.5 h-2 md:h-2.5 bg-blue-500 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
              Neural Parameters
           </div>
-          <span className="text-[9px] font-black uppercase tracking-widest text-zinc-600">Refinery v2.1</span>
+          <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-zinc-600">Refinery v2.2</span>
         </h2>
 
-        <div className="space-y-6">
+        <div className="space-y-6 md:space-y-8">
           <div className="flex bg-zinc-950 p-1 rounded-full border border-zinc-800">
-            <button onClick={() => setType('image')} className={`flex-1 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${type === 'image' ? 'bg-zinc-800 text-white' : 'text-zinc-500'}`}>Image Gen</button>
-            <button onClick={() => setType('video')} className={`flex-1 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${type === 'video' ? 'bg-zinc-800 text-white' : 'text-zinc-500'}`}>Video Gen</button>
+            <button onClick={() => setType('image')} className={`flex-1 py-2 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${type === 'image' ? 'bg-zinc-800 text-white' : 'text-zinc-500'}`}>Image Gen</button>
+            <button onClick={() => setType('video')} className={`flex-1 py-2 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${type === 'video' ? 'bg-zinc-800 text-white' : 'text-zinc-500'}`}>Video Gen</button>
           </div>
 
-          <div>
-            <label className="block text-[10px] uppercase tracking-[0.3em] text-zinc-500 font-black mb-3">Atmospheric Prompt</label>
+          <div className="relative">
+            <div className="flex justify-between items-center mb-3">
+              <label className="block text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-zinc-500 font-black">Atmospheric Prompt</label>
+              {isRefined && (
+                <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded text-[7px] md:text-[8px] font-black uppercase tracking-widest animate-in fade-in zoom-in">Neuraly Refined</span>
+              )}
+            </div>
             <textarea
               value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
+              onChange={(e) => { setPrompt(e.target.value); setIsRefined(false); }}
               placeholder="Inject visual descriptions..."
-              className="w-full h-24 bg-zinc-950 border border-zinc-800 rounded-2xl p-4 text-sm focus:outline-none focus:border-purple-500/50 transition-all resize-none font-mono"
+              className="w-full h-24 md:h-32 bg-zinc-950 border border-zinc-800 rounded-2xl p-4 text-xs md:text-sm focus:outline-none focus:border-purple-500/50 transition-all resize-none font-mono leading-relaxed"
             />
           </div>
 
           {type === 'video' && (
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
-                <label className="block text-[10px] uppercase tracking-[0.3em] text-zinc-500 font-black mb-3">Target Duration</label>
+                <label className="block text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-zinc-500 font-black mb-3">Target Duration</label>
                 <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800">
-                  <button onClick={() => setTargetLength(8)} className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase ${targetLength === 8 ? 'bg-zinc-800 text-white' : 'text-zinc-500'}`}>Standard (8s)</button>
-                  <button onClick={() => setTargetLength(15)} className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase ${targetLength === 15 ? 'bg-zinc-800 text-white' : 'text-zinc-500'}`}>Extended (15s)</button>
+                  <button onClick={() => setTargetLength(8)} className={`flex-1 py-2 rounded-lg text-[8px] md:text-[9px] font-black uppercase ${targetLength === 8 ? 'bg-zinc-800 text-white' : 'text-zinc-500'}`}>Standard (8s)</button>
+                  <button onClick={() => setTargetLength(15)} className={`flex-1 py-2 rounded-lg text-[8px] md:text-[9px] font-black uppercase ${targetLength === 15 ? 'bg-zinc-800 text-white' : 'text-zinc-500'}`}>Extended (15s)</button>
                 </div>
               </div>
               <div>
-                <label className="block text-[10px] uppercase tracking-[0.3em] text-zinc-500 font-black mb-3">Encoding Quality</label>
+                <label className="block text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-zinc-500 font-black mb-3">Encoding Quality</label>
                 <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800">
-                  <button onClick={() => setEncodingQuality('720p')} className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase ${encodingQuality === '720p' ? 'bg-zinc-800 text-white' : 'text-zinc-500'}`}>720p</button>
-                  <button onClick={() => setEncodingQuality('1080p')} className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase ${encodingQuality === '1080p' ? 'bg-zinc-800 text-white' : 'text-zinc-500'}`}>1080p</button>
+                  <button onClick={() => setEncodingQuality('720p')} className={`flex-1 py-2 rounded-lg text-[8px] md:text-[9px] font-black uppercase ${encodingQuality === '720p' ? 'bg-zinc-800 text-white' : 'text-zinc-500'}`}>720p</button>
+                  <button onClick={() => setEncodingQuality('1080p')} className={`flex-1 py-2 rounded-lg text-[8px] md:text-[9px] font-black uppercase ${encodingQuality === '1080p' ? 'bg-zinc-800 text-white' : 'text-zinc-500'}`}>1080p</button>
                 </div>
               </div>
             </div>
@@ -126,7 +152,7 @@ export const VisualStudio: React.FC = () => {
 
           {type === 'video' && (
             <div>
-              <label className="block text-[10px] uppercase tracking-[0.3em] text-zinc-500 font-black mb-3">Seed Reference</label>
+              <label className="block text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-zinc-500 font-black mb-3">Seed Reference</label>
               <div 
                 onClick={() => fileInputRef.current?.click()}
                 className="group cursor-pointer relative aspect-video bg-zinc-950 border border-zinc-800 border-dashed rounded-2xl overflow-hidden flex items-center justify-center transition-all hover:border-zinc-500"
@@ -134,10 +160,10 @@ export const VisualStudio: React.FC = () => {
                 {uploadedImage ? (
                   <>
                     <img src={uploadedImage} className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-black uppercase tracking-widest transition-opacity">Swap Stream</div>
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-opacity">Swap Stream</div>
                   </>
                 ) : (
-                  <span className="text-zinc-600 text-[10px] font-black uppercase tracking-[0.3em] group-hover:text-zinc-400">Upload Reference</span>
+                  <span className="text-zinc-600 text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] group-hover:text-zinc-400">Upload Reference</span>
                 )}
                 <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
               </div>
@@ -145,7 +171,7 @@ export const VisualStudio: React.FC = () => {
           )}
 
           <div>
-            <label className="block text-[10px] uppercase tracking-[0.3em] text-zinc-500 font-black mb-4">
+            <label className="block text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-zinc-500 font-black mb-4">
               Canvas Calibration
             </label>
             {type === 'image' ? (
@@ -154,7 +180,7 @@ export const VisualStudio: React.FC = () => {
                   <button
                     key={r}
                     onClick={() => setAspectRatio(r)}
-                    className={`py-3 text-[10px] border rounded-xl font-black transition-all ${aspectRatio === r ? 'bg-white text-black border-white' : 'border-zinc-800 text-zinc-500 hover:border-zinc-600'}`}
+                    className={`py-2 md:py-3 text-[9px] md:text-[10px] border rounded-lg md:rounded-xl font-black transition-all ${aspectRatio === r ? 'bg-white text-black border-white' : 'border-zinc-800 text-zinc-500 hover:border-zinc-600'}`}
                   >
                     {r}
                   </button>
@@ -162,8 +188,8 @@ export const VisualStudio: React.FC = () => {
               </div>
             ) : (
               <div className="flex gap-4">
-                <button onClick={() => setOrientation('16:9')} className={`flex-1 py-4 text-[10px] border rounded-2xl font-black uppercase tracking-widest ${orientation === '16:9' ? 'bg-white text-black' : 'border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}>Landscape</button>
-                <button onClick={() => setOrientation('9:16')} className={`flex-1 py-4 text-[10px] border rounded-2xl font-black uppercase tracking-widest ${orientation === '9:16' ? 'bg-white text-black' : 'border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}>Portrait</button>
+                <button onClick={() => setOrientation('16:9')} className={`flex-1 py-3 md:py-4 text-[9px] md:text-[10px] border rounded-xl md:rounded-2xl font-black uppercase tracking-widest ${orientation === '16:9' ? 'bg-white text-black' : 'border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}>Landscape</button>
+                <button onClick={() => setOrientation('9:16')} className={`flex-1 py-3 md:py-4 text-[9px] md:text-[10px] border rounded-xl md:rounded-2xl font-black uppercase tracking-widest ${orientation === '9:16' ? 'bg-white text-black' : 'border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}>Portrait</button>
               </div>
             )}
           </div>
@@ -171,7 +197,7 @@ export const VisualStudio: React.FC = () => {
           <button
             onClick={handleGenerate}
             disabled={isProcessing}
-            className="w-full py-5 bg-white text-black font-black uppercase tracking-widest text-[11px] rounded-full hover:bg-zinc-200 transition-all disabled:opacity-50 shadow-xl shadow-white/5"
+            className="w-full py-4 md:py-5 bg-white text-black font-black uppercase tracking-widest text-[10px] md:text-[11px] rounded-full hover:bg-zinc-200 transition-all disabled:opacity-50 shadow-xl shadow-white/5"
           >
             {isProcessing ? 'System Busy' : resultUrl ? 'Re-Synthesize' : `Execute ${type} Gen`}
           </button>
@@ -179,23 +205,23 @@ export const VisualStudio: React.FC = () => {
       </div>
 
       <div className="flex flex-col gap-6">
-        <div className="flex-1 bg-zinc-950 border border-zinc-800 rounded-[2.5rem] overflow-hidden relative flex flex-col items-center justify-center min-h-[500px] shadow-2xl shadow-black">
-          {isProcessing ? (
-            <div className="w-full px-8">
-              <ProcessingHUD isActive={isProcessing} baseStatus={`${type.toUpperCase()} GEN`} />
+        <div className="flex-1 bg-zinc-950 border border-zinc-800 rounded-[2rem] md:rounded-[2.5rem] overflow-hidden relative flex flex-col items-center justify-center min-h-[300px] md:min-h-[500px] shadow-2xl shadow-black">
+          {isProcessing || isRefining ? (
+            <div className="w-full px-6 md:px-8">
+              <ProcessingHUD isActive={isProcessing || isRefining} baseStatus={isRefining ? "Refinement Protocol" : `${type.toUpperCase()} GEN`} />
             </div>
           ) : resultUrl ? (
             <div className="w-full h-full relative group flex flex-col">
-              <div className="flex-1 relative">
+              <div className="flex-1 relative flex items-center justify-center bg-black">
                 {type === 'image' ? (
                   <img src={resultUrl} className="w-full h-full object-contain" />
                 ) : (
                   <video src={resultUrl} controls autoPlay loop className="w-full h-full object-contain" />
                 )}
                 
-                <div className="absolute top-6 right-8 pointer-events-none">
+                <div className="absolute top-4 right-6 pointer-events-none">
                   <div 
-                    className="px-3 py-1 font-black text-sm tracking-tighter uppercase motion-blur-logo"
+                    className="px-2 py-0.5 font-black text-[10px] md:text-sm tracking-tighter uppercase motion-blur-logo"
                     data-text="DANNYX.ONLINE"
                   >
                     DANNYX.ONLINE
@@ -204,37 +230,50 @@ export const VisualStudio: React.FC = () => {
               </div>
 
               {auditResults && (
-                <div className="absolute inset-0 bg-black/90 p-8 overflow-y-auto animate-in fade-in slide-in-from-top-4 z-50">
+                <div className="absolute inset-0 bg-black/95 p-6 md:p-8 overflow-y-auto animate-in fade-in slide-in-from-top-4 z-50">
                   <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-sm font-black text-purple-400 uppercase tracking-widest">Neural Audit Report</h3>
-                    <button onClick={() => setAuditResults(null)} className="text-zinc-500 hover:text-white uppercase text-[9px] font-black">Close Audit</button>
+                    <div className="flex items-center gap-3">
+                       <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-purple-500 rounded-full animate-pulse" />
+                       <h3 className="text-xs md:text-sm font-black text-purple-400 uppercase tracking-widest">Neural Audit Report</h3>
+                    </div>
+                    <button onClick={() => setAuditResults(null)} className="text-zinc-500 hover:text-white uppercase text-[8px] md:text-[9px] font-black">Close Audit</button>
                   </div>
-                  <div className="prose prose-invert prose-xs font-mono text-zinc-400 whitespace-pre-wrap">
+                  
+                  <div className="prose prose-invert prose-xs font-mono text-zinc-400 whitespace-pre-wrap mb-10 leading-relaxed border-l border-zinc-800 pl-4 md:pl-6 text-[10px] md:text-xs">
                     {auditResults}
+                  </div>
+
+                  <div className="flex flex-col gap-3">
+                     <button 
+                      onClick={handleApplyRefinement}
+                      className="w-full py-4 bg-purple-600 text-white text-[9px] md:text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-purple-500 transition-all shadow-lg shadow-purple-900/20"
+                     >
+                       Apply Heuristic Refinement
+                     </button>
                   </div>
                 </div>
               )}
             </div>
           ) : (
-            <div className="text-zinc-900 uppercase font-black text-6xl transform -rotate-12 opacity-50 select-none pointer-events-none">Awaiting Output</div>
+            <div className="text-zinc-900 uppercase font-black text-4xl md:text-6xl transform -rotate-12 opacity-50 select-none pointer-events-none text-center px-6">Awaiting Output</div>
           )}
         </div>
         
         {resultUrl && (
           <div className="flex flex-col gap-4 animate-in slide-in-from-bottom-4">
-            <div className="flex gap-4">
-              <a href={resultUrl} download={`dannyx_studio_${Date.now()}.${type === 'image' ? 'png' : 'mp4'}`} className="flex-1 py-4 bg-zinc-100 text-black text-center rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-white transition-all">Download Master</a>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <a href={resultUrl} download={`dannyx_studio_${Date.now()}.${type === 'image' ? 'png' : 'mp4'}`} className="flex-1 py-4 bg-zinc-100 text-black text-center rounded-xl md:rounded-2xl text-[10px] md:text-[11px] font-black uppercase tracking-widest hover:bg-white transition-all">Download Master</a>
               {type === 'video' && (
                 <button 
                   onClick={handleAudit} 
                   disabled={isAuditing}
-                  className="flex-1 py-4 border border-purple-500/50 text-purple-400 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-purple-500/10 transition-all disabled:opacity-30"
+                  className="flex-1 py-4 border border-purple-500/50 text-purple-400 rounded-xl md:rounded-2xl text-[10px] md:text-[11px] font-black uppercase tracking-widest hover:bg-purple-500/10 transition-all disabled:opacity-30"
                 >
                   {isAuditing ? 'Auditing...' : 'Neural Audit'}
                 </button>
               )}
             </div>
-            <button onClick={() => { setResultUrl(null); setLastRawVideo(null); setAuditResults(null); }} className="w-full py-4 border border-zinc-800 text-zinc-500 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:text-white hover:bg-zinc-800 transition-all">Purge Session</button>
+            <button onClick={() => { setResultUrl(null); setLastRawVideo(null); setAuditResults(null); setIsRefined(false); }} className="w-full py-4 border border-zinc-800 text-zinc-500 rounded-xl md:rounded-2xl text-[10px] md:text-[11px] font-black uppercase tracking-widest hover:text-white hover:bg-zinc-800 transition-all">Purge Session</button>
           </div>
         )}
       </div>

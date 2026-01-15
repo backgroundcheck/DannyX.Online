@@ -58,7 +58,7 @@ export class SynthesisService {
   async synthesizeVideo(prompt: string, imageBase64?: string, orientation: '16:9' | '9:16' = '16:9', resolution: '720p' | '1080p' = '1080p'): Promise<any> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const config: any = {
-      model: 'veo-3.1-generate-preview', // Upgraded to high-quality model
+      model: 'veo-3.1-generate-preview',
       prompt: prompt,
       config: {
         numberOfVideos: 1,
@@ -95,6 +95,28 @@ export class SynthesisService {
   }
 
   /**
+   * Uses Gemini to re-engineer a prompt based on specific failure reports.
+   */
+  async refineSynthesisPrompt(originalPrompt: string, auditReport: string): Promise<string> {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-preview',
+      contents: `You are a Generative Prompt Engineer. I have an original prompt and a technical audit of why the generated video failed. 
+      Your task is to rewrite the prompt to specifically address the stability issues, temporal artifacts, and motion coherence problems mentioned.
+      
+      Original Prompt: "${originalPrompt}"
+      Audit Report: "${auditReport}"
+      
+      Requirements for the new prompt:
+      - Integrate "Negative Prompting" keywords into the description (e.g., describing what should stay still or remain sharp).
+      - Use more precise motion verbs to guide the model's temporal consistency.
+      - Keep the cinematic, macro style.
+      - Return only the refined prompt text.`,
+    });
+    return response.text.trim();
+  }
+
+  /**
    * Extends an existing video to add more duration.
    */
   async extendVideo(previousVideo: any, prompt: string): Promise<any> {
@@ -105,7 +127,7 @@ export class SynthesisService {
       video: previousVideo,
       config: {
         numberOfVideos: 1,
-        resolution: '720p', // extension is limited to 720p per guidelines
+        resolution: '720p',
         aspectRatio: '16:9',
       }
     });

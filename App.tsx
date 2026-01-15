@@ -64,8 +64,8 @@ const App: React.FC = () => {
       const seedImage = await synthesisService.generateSeedImage(visualPrompt);
       setState(prev => ({ ...prev, seedImageUrl: seedImage, isGeneratingSeed: false, isSynthesizingVideo: true }));
 
-      const videoUrl = await synthesisService.synthesizeVideo(visualPrompt, seedImage);
-      setState(prev => ({ ...prev, videoUrl, isSynthesizingVideo: false }));
+      const videoUrlRes = await synthesisService.synthesizeVideo(visualPrompt, seedImage);
+      setState(prev => ({ ...prev, videoUrl: videoUrlRes.url, isSynthesizingVideo: false }));
     } catch (err: any) {
       if (err.message?.includes("Requested entity was not found.")) {
         setHasApiKey(false);
@@ -77,10 +77,10 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     if (!hasApiKey) return (
-      <div className="text-center mt-20 max-w-md">
-        <h2 className="text-2xl font-bold mb-4 uppercase tracking-tighter">Authorization Required</h2>
-        <p className="text-zinc-500 mb-8">This high-performance engine requires direct access to Veo and Gemini models. Ensure you are using a paid API project.</p>
-        <button onClick={handleSelectKey} className="px-12 py-4 bg-white text-black font-black uppercase tracking-widest rounded-full hover:bg-zinc-200 transition-all">Select API Key</button>
+      <div className="text-center mt-10 md:mt-20 px-4 max-w-md mx-auto">
+        <h2 className="text-xl md:text-2xl font-bold mb-4 uppercase tracking-tighter">Authorization Required</h2>
+        <p className="text-zinc-500 text-sm md:text-base mb-8 leading-relaxed">This high-performance engine requires direct access to Veo and Gemini models. Ensure you are using a paid API project.</p>
+        <button onClick={handleSelectKey} className="w-full md:w-auto px-12 py-4 bg-white text-black font-black uppercase tracking-widest rounded-full hover:bg-zinc-200 transition-all">Select API Key</button>
       </div>
     );
 
@@ -93,15 +93,15 @@ const App: React.FC = () => {
       case 'synthesis':
       default:
         return !audioFile ? (
-          <div className="animate-in fade-in zoom-in duration-500">
+          <div className="animate-in fade-in zoom-in duration-500 w-full max-w-2xl px-4">
             <AudioUploader onFileSelect={(f) => { setAudioFile(f); startSynthesis(f); }} disabled={state.isAnalyzing} />
           </div>
         ) : (
-          <div className="w-full flex flex-col items-center">
-             {state.error && <div className="mb-6 p-4 bg-red-900/20 border border-red-500/50 rounded-xl text-red-400 text-sm">Error: {state.error}</div>}
+          <div className="w-full flex flex-col items-center px-4">
+             {state.error && <div className="mb-6 w-full max-w-4xl p-4 bg-red-900/20 border border-red-500/50 rounded-xl text-red-400 text-xs md:text-sm">Error: {state.error}</div>}
              <SynthesisDashboard state={state} />
              {(state.videoUrl || state.error) && (
-               <button onClick={() => { setAudioFile(null); setState(s => ({ ...s, videoUrl: null })); }} className="mt-12 text-zinc-500 hover:text-white transition-colors text-sm uppercase tracking-widest font-bold">New Synthesis</button>
+               <button onClick={() => { setAudioFile(null); setState(s => ({ ...s, videoUrl: null })); }} className="mt-12 text-zinc-500 hover:text-white transition-colors text-[10px] md:text-sm uppercase tracking-widest font-black py-4 px-8 border border-zinc-800 rounded-full">New Synthesis</button>
              )}
           </div>
         );
@@ -109,26 +109,26 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center p-6 md:p-12 relative overflow-hidden">
+    <div className="min-h-screen flex flex-col items-center p-4 md:p-8 lg:p-12 relative overflow-x-hidden">
       <div className="fixed inset-0 pointer-events-none z-[-1] opacity-20">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500 rounded-full blur-[120px] animate-pulse" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-zinc-600 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute top-[-10%] left-[-10%] w-[60%] md:w-[40%] h-[40%] bg-blue-500 rounded-full blur-[100px] md:blur-[120px] animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[60%] md:w-[40%] h-[40%] bg-zinc-600 rounded-full blur-[100px] md:blur-[120px] animate-pulse" />
       </div>
 
-      <header className="w-full max-w-7xl flex flex-col md:flex-row justify-between items-center mb-16 gap-6">
-        <div className="flex flex-col cursor-pointer" onClick={() => setMode('synthesis')}>
+      <header className="w-full max-w-7xl flex flex-col lg:flex-row justify-between items-center mb-10 md:mb-16 gap-8">
+        <div className="flex flex-col items-center lg:items-start cursor-pointer group" onClick={() => setMode('synthesis')}>
           <h1 
-            className="text-5xl font-black tracking-tighter text-white opacity-100 uppercase motion-blur-logo"
+            className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter text-white opacity-100 uppercase motion-blur-logo"
             data-text="DANNYX.ONLINE"
           >
             DANNYX.ONLINE
           </h1>
-          <span className="text-[10px] uppercase tracking-[0.6em] text-zinc-400 font-bold mt-1">Integrated Neural Workspace</span>
+          <span className="text-[8px] md:text-[10px] uppercase tracking-[0.4em] md:tracking-[0.6em] text-zinc-400 font-bold mt-1 group-hover:text-white transition-colors">Integrated Neural Workspace</span>
         </div>
         
         {hasApiKey && (
-          <>
-            <nav className="flex bg-zinc-900/50 p-1 rounded-full border border-zinc-800 backdrop-blur-sm">
+          <div className="w-full lg:w-auto flex flex-col md:flex-row items-center gap-6">
+            <nav className="w-full md:w-auto flex bg-zinc-900/50 p-1 rounded-full border border-zinc-800 backdrop-blur-sm overflow-x-auto no-scrollbar scroll-smooth">
               {[
                 { id: 'synthesis', label: 'Synthesis' },
                 { id: 'combine', label: 'Combine' },
@@ -139,7 +139,7 @@ const App: React.FC = () => {
                 <button 
                   key={m.id}
                   onClick={() => setMode(m.id as AppMode)}
-                  className={`px-6 py-2 rounded-full text-xs font-bold uppercase transition-all ${mode === m.id ? 'bg-white text-black' : 'text-zinc-500 hover:text-white'}`}
+                  className={`whitespace-nowrap px-4 md:px-6 py-2 rounded-full text-[10px] md:text-xs font-black uppercase transition-all ${mode === m.id ? 'bg-white text-black' : 'text-zinc-500 hover:text-white'}`}
                 >
                   {m.label}
                 </button>
@@ -149,7 +149,7 @@ const App: React.FC = () => {
             <div className="flex items-center gap-6">
               <button 
                 onClick={() => setMode('about')}
-                className={`flex items-center gap-2 group transition-all ${mode === 'about' ? 'opacity-100' : 'opacity-40 hover:opacity-100'}`}
+                className={`flex items-center gap-2 group transition-all shrink-0 ${mode === 'about' ? 'opacity-100' : 'opacity-40 hover:opacity-100'}`}
               >
                 <div className={`w-6 h-6 rounded-full border flex items-center justify-center transition-all ${mode === 'about' ? 'border-purple-500 bg-purple-500/10' : 'border-zinc-700 bg-transparent'}`}>
                   <span className={`text-[10px] font-black font-mono transition-colors ${mode === 'about' ? 'text-purple-400' : 'text-zinc-500'}`}>?</span>
@@ -157,12 +157,12 @@ const App: React.FC = () => {
                 <span className={`text-[9px] font-black uppercase tracking-[0.2em] transition-colors ${mode === 'about' ? 'text-white' : 'text-zinc-600'}`}>About</span>
               </button>
 
-              <div className={`flex items-center gap-2 text-[9px] font-mono uppercase font-black ${hasApiKey ? 'text-green-500' : 'text-red-500'}`}>
+              <div className={`flex items-center gap-2 text-[9px] font-mono uppercase font-black shrink-0 ${hasApiKey ? 'text-green-500' : 'text-red-500'}`}>
                 <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${hasApiKey ? 'bg-green-500' : 'bg-red-500'}`} />
-                {hasApiKey ? 'Neural Active' : 'Offline'}
+                <span className="hidden sm:inline">{hasApiKey ? 'Neural Active' : 'Offline'}</span>
               </div>
             </div>
-          </>
+          </div>
         )}
       </header>
 
@@ -170,9 +170,14 @@ const App: React.FC = () => {
         {renderContent()}
       </main>
 
-      <footer className="mt-20 pb-10 w-full text-center text-[10px] text-zinc-600 uppercase tracking-[0.2em]">
-        &copy; {new Date().getFullYear()} DannyX Laboratories. V3.2 Integrated Studio
+      <footer className="mt-16 md:mt-20 pb-10 w-full text-center text-[8px] md:text-[10px] text-zinc-600 uppercase tracking-[0.2em] px-4">
+        &copy; {new Date().getFullYear()} DannyX Laboratories. V3.2 Integrated Studio // Optimized for Multiscreen
       </footer>
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}} />
     </div>
   );
 };

@@ -16,7 +16,11 @@ const STATUS_MESSAGES = [
   "Structuring atmospheric layers...",
   "Rendering volumetric light fields...",
   "Finalizing master metadata injection...",
-  "Encoding optimal visual stream..."
+  "Encoding optimal visual stream...",
+  "Re-engineering latent vectors based on audit...",
+  "Applying temporal heuristics...",
+  "Mitigating identified artifacts...",
+  "Optimizing motion coherence weights..."
 ];
 
 export const ProcessingHUD: React.FC<Props> = ({ isActive, baseStatus }) => {
@@ -29,6 +33,11 @@ export const ProcessingHUD: React.FC<Props> = ({ isActive, baseStatus }) => {
       setProgress(0);
       setStatusIndex(0);
       
+      // If it's a refinement, use specific status messages starting from the end of the list
+      if (baseStatus === "Refinement Protocol") {
+        setStatusIndex(10);
+      }
+
       // Simulated progress bar logic - slower for high quality
       interval = window.setInterval(() => {
         setProgress(prev => {
@@ -42,15 +51,21 @@ export const ProcessingHUD: React.FC<Props> = ({ isActive, baseStatus }) => {
 
       // Rotating status updates
       const statusInterval = window.setInterval(() => {
-        setStatusIndex(prev => (prev + 1) % STATUS_MESSAGES.length);
-      }, 5000);
+        setStatusIndex(prev => {
+          if (baseStatus === "Refinement Protocol") {
+             // Cycle through only the last 4 refinement messages
+             return 10 + ((prev - 9) % 4);
+          }
+          return (prev + 1) % 10;
+        });
+      }, 4000);
 
       return () => {
         window.clearInterval(interval);
         window.clearInterval(statusInterval);
       };
     }
-  }, [isActive]);
+  }, [isActive, baseStatus]);
 
   if (!isActive) return null;
 
