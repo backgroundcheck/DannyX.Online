@@ -115,20 +115,20 @@ const App: React.FC = () => {
         <div className="absolute bottom-[-10%] right-[-10%] w-[60%] md:w-[40%] h-[40%] bg-zinc-600 rounded-full blur-[100px] md:blur-[120px] animate-pulse" />
       </div>
 
-      <header className="w-full max-w-7xl flex flex-col lg:flex-row justify-between items-center mb-10 md:mb-16 gap-8">
-        <div className="flex flex-col items-center lg:items-start cursor-pointer group" onClick={() => setMode('synthesis')}>
+      <header className="w-full max-w-7xl flex flex-col items-center mb-12 md:mb-20 gap-10">
+        <div className="flex flex-col items-center cursor-pointer group text-center" onClick={() => setMode('synthesis')}>
           <h1 
-            className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter text-white opacity-100 uppercase motion-blur-logo"
+            className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tighter text-white opacity-100 uppercase motion-blur-logo"
             data-text="DANNYX.ONLINE"
           >
             DANNYX.ONLINE
           </h1>
-          <span className="text-[8px] md:text-[10px] uppercase tracking-[0.4em] md:tracking-[0.6em] text-zinc-400 font-bold mt-1 group-hover:text-white transition-colors">Integrated Neural Workspace</span>
+          <span className="text-[8px] md:text-[10px] uppercase tracking-[0.5em] md:tracking-[0.8em] text-zinc-500 font-bold mt-2 group-hover:text-white transition-all duration-500">Integrated Neural Workspace</span>
         </div>
         
         {hasApiKey && (
-          <div className="w-full lg:w-auto flex flex-col md:flex-row items-center gap-6">
-            <nav className="w-full md:w-auto flex bg-zinc-900/50 p-1 rounded-full border border-zinc-800 backdrop-blur-sm overflow-x-auto no-scrollbar scroll-smooth">
+          <div className="w-full flex flex-col items-center gap-8">
+            <nav className="flex bg-zinc-900/50 p-1.5 rounded-full border border-zinc-800/80 backdrop-blur-xl overflow-x-auto no-scrollbar scroll-smooth shadow-2xl shadow-black/50">
               {[
                 { id: 'synthesis', label: 'Synthesis' },
                 { id: 'combine', label: 'Combine' },
@@ -139,27 +139,27 @@ const App: React.FC = () => {
                 <button 
                   key={m.id}
                   onClick={() => setMode(m.id as AppMode)}
-                  className={`whitespace-nowrap px-4 md:px-6 py-2 rounded-full text-[10px] md:text-xs font-black uppercase transition-all ${mode === m.id ? 'bg-white text-black' : 'text-zinc-500 hover:text-white'}`}
+                  className={`whitespace-nowrap px-5 md:px-8 py-2.5 rounded-full text-[10px] md:text-xs font-black uppercase transition-all duration-300 ${mode === m.id ? 'bg-white text-black shadow-lg shadow-white/10' : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
                 >
                   {m.label}
                 </button>
               ))}
             </nav>
 
-            <div className="flex items-center gap-6">
+            <div className="flex items-center justify-center gap-8 md:gap-12">
               <button 
                 onClick={() => setMode('about')}
-                className={`flex items-center gap-2 group transition-all shrink-0 ${mode === 'about' ? 'opacity-100' : 'opacity-40 hover:opacity-100'}`}
+                className={`flex items-center gap-3 group transition-all duration-500 ${mode === 'about' ? 'opacity-100' : 'opacity-40 hover:opacity-100'}`}
               >
-                <div className={`w-6 h-6 rounded-full border flex items-center justify-center transition-all ${mode === 'about' ? 'border-purple-500 bg-purple-500/10' : 'border-zinc-700 bg-transparent'}`}>
-                  <span className={`text-[10px] font-black font-mono transition-colors ${mode === 'about' ? 'text-purple-400' : 'text-zinc-500'}`}>?</span>
+                <div className={`w-7 h-7 rounded-full border flex items-center justify-center transition-all duration-500 ${mode === 'about' ? 'border-purple-500 bg-purple-500/10 shadow-[0_0_15px_rgba(168,85,247,0.3)]' : 'border-zinc-800 bg-transparent'}`}>
+                  <span className={`text-[11px] font-black font-mono transition-colors ${mode === 'about' ? 'text-purple-400' : 'text-zinc-500'}`}>?</span>
                 </div>
-                <span className={`text-[9px] font-black uppercase tracking-[0.2em] transition-colors ${mode === 'about' ? 'text-white' : 'text-zinc-600'}`}>About</span>
+                <span className={`text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] transition-colors ${mode === 'about' ? 'text-white' : 'text-zinc-600 group-hover:text-zinc-400'}`}>About</span>
               </button>
 
-              <div className={`flex items-center gap-2 text-[9px] font-mono uppercase font-black shrink-0 ${hasApiKey ? 'text-green-500' : 'text-red-500'}`}>
-                <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${hasApiKey ? 'bg-green-500' : 'bg-red-500'}`} />
-                <span className="hidden sm:inline">{hasApiKey ? 'Neural Active' : 'Offline'}</span>
+              <div className={`flex items-center gap-3 text-[9px] md:text-[10px] font-mono uppercase font-black tracking-[0.2em] px-4 py-2 bg-zinc-900/30 rounded-full border border-zinc-800/50 ${hasApiKey ? 'text-green-500' : 'text-red-500'}`}>
+                <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${hasApiKey ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-red-500'}`} />
+                <span>{hasApiKey ? 'Neural Active' : 'Offline'}</span>
               </div>
             </div>
           </div>
@@ -170,8 +170,8 @@ const App: React.FC = () => {
         {renderContent()}
       </main>
 
-      <footer className="mt-16 md:mt-20 pb-10 w-full text-center text-[8px] md:text-[10px] text-zinc-600 uppercase tracking-[0.2em] px-4">
-        &copy; {new Date().getFullYear()} DannyX Laboratories. V3.2 Integrated Studio // Optimized for Multiscreen
+      <footer className="mt-16 md:mt-24 pb-10 w-full text-center text-[8px] md:text-[10px] text-zinc-600 uppercase tracking-[0.3em] px-4 opacity-50 font-black">
+        &copy; {new Date().getFullYear()} DannyX Laboratories // Kernel V3.2 Stable // Multiscreen Encoded
       </footer>
 
       <style dangerouslySetInnerHTML={{ __html: `
