@@ -1,0 +1,104 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DannyX | Synthesis Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #050505;
+            color: #e0e0e0;
+            overflow-x: hidden;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+        .organic-gradient {
+            background: radial-gradient(circle at 50% 50%, rgba(30, 30, 30, 1) 0%, rgba(5, 5, 5, 1) 100%);
+        }
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #222;
+            border-radius: 10px;
+        }
+
+        /* High-End Chromatic Motion Blur Logo */
+        .motion-blur-logo {
+            position: relative;
+            background: linear-gradient(to right, #fff, #888, #fff);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: 
+                motion-vibrate 0.1s infinite alternate,
+                spectral-shift 3s linear infinite;
+        }
+
+        .motion-blur-logo::before,
+        .motion-blur-logo::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            mix-blend-mode: screen;
+        }
+
+        .motion-blur-logo::before {
+            color: rgba(255, 0, 128, 0.6); /* Vibrant Magenta Ghost */
+            transform: translateX(-6px);
+            filter: blur(6px);
+            animation: blur-oscillation-left 2s ease-in-out infinite alternate;
+        }
+
+        .motion-blur-logo::after {
+            color: rgba(0, 255, 255, 0.6); /* Electric Cyan Ghost */
+            transform: translateX(6px);
+            filter: blur(6px);
+            animation: blur-oscillation-right 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes spectral-shift {
+            0% { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(360deg); }
+        }
+
+        @keyframes motion-vibrate {
+            0% { transform: translate(-1px, 0.5px); }
+            50% { transform: translate(1px, -0.5px); }
+            100% { transform: translate(-0.5px, 1px); }
+        }
+
+        @keyframes blur-oscillation-left {
+            from { transform: translateX(-4px) scale(1.02); opacity: 0.4; }
+            to { transform: translateX(-12px) scale(1.05); opacity: 0.7; }
+        }
+
+        @keyframes blur-oscillation-right {
+            from { transform: translateX(4px) scale(1.02); opacity: 0.4; }
+            to { transform: translateX(12px) scale(1.05); opacity: 0.7; }
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.36.0"
+  }
+}
+</script>
+</head>
+<body class="organic-gradient min-h-screen">
+    <div id="root"></div>
+</body>
+</html>

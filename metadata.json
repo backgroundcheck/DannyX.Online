@@ -1,0 +1,7 @@
+{
+  "name": "DannyX Audiovisual Synthesis Engine",
+  "description": "A high-end audiovisual engine that transforms uploaded audio into immersive, organic visual landscapes using Gemini and Veo models.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
