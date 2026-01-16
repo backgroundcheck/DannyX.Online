@@ -3,36 +3,117 @@ import { GoogleGenAI, Type, Chat } from "@google/genai";
 import { AudioAnalysis } from "../types";
 
 export class SynthesisService {
-  /**
-   * Generates a visual prompt based on technical audio analysis.
-   */
-  async generateVisualPrompt(analysis: AudioAnalysis): Promise<string> {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const techSpecs = `
-      - Audio Dynamics: Energy=${analysis.energy}, ZCR=${analysis.zcr}
-      - Spectral Balance: Bass=${analysis.bassEnergy}, Mids=${analysis.midEnergy}, Highs=${analysis.highEnergy}
-      - Timbral Character: Centroid=${analysis.spectralCentroid}Hz
-      - Rhythm: ${analysis.bpm} BPM
-      - Perceived Mood: ${analysis.moodDescription}
-    `;
+  private systemRole = `
+    SYSTEM ROLE
+    You are an audiovisual synthesis engine generating a single immersive video.
 
+    INPUT
+    - One uploaded audio track (this audio defines the full duration).
+    - Optional user settings: aspect ratio, intensity, absurdity.
+
+    OUTPUT REQUIREMENT
+    Generate one continuous immersive video.
+    Duration: exactly match the uploaded audio length.
+    Aspect ratio: user-selected (default 16:9).
+    Resolution: 1080p.
+    Framerate: stable 24–30fps.
+    No cuts. No resets. No scene breaks.
+
+    CORE DIRECTIVE
+    This video must be generated directly from the uploaded audio.
+    Audio is the structural driver of all visual behavior.
+    The visuals must feel alive, unstable, and continuously transforming.
+
+    This is not a sequence of images.
+    This is not a geometric composition.
+    This is a living visual field shaped by sound.
+
+    AUDIO → VISUAL CAUSALITY
+    - Rhythm creates tension and release.
+    - Loudness causes expansion, compression, distortion.
+    - Bass bends space and mass.
+    - Mid frequencies agitate texture and flow.
+    - High frequencies introduce fine fragmentation and shimmer.
+    - Silence suspends motion and creates visual pressure.
+
+    Every visual change must have an audible cause.
+
+    VISUAL BEHAVIOR
+    - No points, lines, grids, or clean geometry.
+    - No symmetry or balanced composition.
+    - No recognizable objects, people, symbols, or text.
+
+    Generate:
+    - Organic textures
+    - Liquid and fog-like flows
+    - Swarms, smears, interference fields
+    - Grain, turbulence, drift
+    - Slightly absurd but coherent motion
+
+    Motion must be cyclical but imperfect.
+    Visual states may echo earlier moments but must never repeat exactly.
+
+    TEMPORAL STRUCTURE
+    Internally build the video from seamless 5–7 second loopable segments,
+    but present the result as one continuous experience.
+    No hard cuts. Transitions must feel like morphing continuation.
+
+    SPACE & PERSPECTIVE
+    - No traditional camera moves.
+    - Viewer is embedded inside the visual field.
+    - Space may warp, breathe, stretch, or collapse with sound.
+    - Perspective is unstable but coherent.
+
+    IMMERSION
+    Prioritize immersion over clarity or beauty.
+    Allow moments of:
+    - Hypnosis
+    - Unease
+    - Absurd calm
+    - Sudden restraint after intensity
+
+    LIVE-GENERATED FEEL
+    The video must feel continuously generated, not pre-rendered.
+    No visible looping seams.
+    No sudden lighting jumps.
+    No temporal collapse or object loss.
+
+    STABILITY CONSTRAINTS (MANDATORY)
+    - Prevent morphing, melting, or disappearing structures.
+    - Maintain lighting continuity.
+    - Avoid rapid scaling or aggressive motion.
+    - No flicker, strobe, jitter, or camera shake.
+
+    WAVEFORM OVERLAY (MANDATORY)
+    Integrate an audio-reactive waveform directly into the visual field.
+    The waveform must:
+    - Be fluid and organic
+    - React to frequency bands
+    - Feel embedded, not like a UI overlay
+    - Never dominate or distract
+
+    BRANDING (MANDATORY)
+    Overlay throughout the entire video:
+    - Top-right: “DANNYX.ONLINE” logo, small, unobtrusive
+    - Bottom-right: “DannyX.online” watermark, semi-transparent
+  `;
+
+  async generateExpressPrompt(analysis: AudioAnalysis, intensity: number, absurdity: number): Promise<string> {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
-      contents: `You are an audiovisual synthesis expert. Generate a high-end, abstract visual prompt for a generative video model based on the following technical audio analysis:
-      ${techSpecs}
+      contents: `Generate a master synthesis prompt for Veo 3.1 based on these neural inputs:
+      Audio: BPM=${analysis.bpm}, Energy=${analysis.energy}, Mood=${analysis.moodDescription}.
+      Dynamics: Intensity=${intensity}%, Absurdity=${absurdity}%.
       
-      Requirements for the prompt:
-      - Describe complex fluid-dynamic behaviors corresponding to the spectral centroid.
-      - High centroid = sharp particulate, low centroid = viscous swells.
-      - Style: Cinematic macro photography, unstable organic matter. No text, no human figures.
-      Return only the prompt string.`,
+      Maintain your core directive: Audio-causality, no geometry, continuous organic flow.`,
+      config: {
+        systemInstruction: this.systemRole
+      }
     });
     return response.text.trim();
   }
 
-  /**
-   * Generates a seed image for video synthesis.
-   */
   async generateSeedImage(prompt: string, aspectRatio: string = "16:9"): Promise<string> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
@@ -52,9 +133,6 @@ export class SynthesisService {
     throw new Error("No image data in response.");
   }
 
-  /**
-   * Synthesizes video from text and optional image using high-quality Veo.
-   */
   async synthesizeVideo(prompt: string, imageBase64?: string, orientation: '16:9' | '9:16' = '16:9', resolution: '720p' | '1080p' = '1080p'): Promise<any> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const config: any = {
@@ -94,31 +172,15 @@ export class SynthesisService {
     };
   }
 
-  /**
-   * Uses Gemini to re-engineer a prompt based on specific failure reports.
-   */
   async refineSynthesisPrompt(originalPrompt: string, auditReport: string): Promise<string> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
-      contents: `You are a Generative Prompt Engineer. I have an original prompt and a technical audit of why the generated video failed. 
-      Your task is to rewrite the prompt to specifically address the stability issues, temporal artifacts, and motion coherence problems mentioned.
-      
-      Original Prompt: "${originalPrompt}"
-      Audit Report: "${auditReport}"
-      
-      Requirements for the new prompt:
-      - Integrate "Negative Prompting" keywords into the description (e.g., describing what should stay still or remain sharp).
-      - Use more precise motion verbs to guide the model's temporal consistency.
-      - Keep the cinematic, macro style.
-      - Return only the refined prompt text.`,
+      contents: `Refine this prompt to enhance temporal stability based on audit report: ${auditReport}. Original: ${originalPrompt}`,
     });
     return response.text.trim();
   }
 
-  /**
-   * Extends an existing video to add more duration.
-   */
   async extendVideo(previousVideo: any, prompt: string): Promise<any> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     let operation = await ai.models.generateVideos({
@@ -146,9 +208,6 @@ export class SynthesisService {
     };
   }
 
-  /**
-   * Audits video stability and coherence using Gemini 3 Pro.
-   */
   async auditVideoStability(videoUrl: string): Promise<string> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await fetch(videoUrl);
@@ -164,7 +223,7 @@ export class SynthesisService {
       contents: {
         parts: [
           { inlineData: { data: base64Data, mimeType: 'video/mp4' } },
-          { text: "Analyze this generated video for stability issues, temporal artifacts, and motion coherence. Provide a technical stability score out of 100 and suggestions for re-rendering." }
+          { text: "Perform stability audit. Focus on flickering, scene cuts (which are forbidden), and motion coherence." }
         ]
       }
     });
@@ -172,59 +231,38 @@ export class SynthesisService {
     return auditResponse.text;
   }
 
-  /**
-   * Combines multiple video inputs into a single synthesized prompt.
-   */
   async fuseVideos(videoPrompts: string[]): Promise<string> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
-      contents: `You are a neural visual synthesis engine. I will give you descriptions of ${videoPrompts.length} video segments. 
-      Your task is to generate a single, high-fidelity generative video prompt that intelligently merges the aesthetics, textures, and movement dynamics of all segments into one cohesive, 8-second cinematic landscape.
-      
-      Input Segment Descriptions:
-      ${videoPrompts.join('\n\n')}
-      
-      Output: A single, detailed, cinematic prompt for Veo. No conversational text.`,
+      contents: `Fuse these visual segments into a singular continuous organic master prompt: ${videoPrompts.join('\n\n')}`,
     });
     return response.text.trim();
   }
 
-  /**
-   * Starts a new fast-response chat session with Gemini 2.5 Flash Lite.
-   */
   createFastChat(): Chat {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     return ai.chats.create({
       model: 'gemini-2.5-flash-lite',
       config: {
-        systemInstruction: "You are the DannyX Fast Neural Interface. Optimized for low-latency responses. Be concise, technical, and efficient."
+        systemInstruction: this.systemRole + "\nYou are the DannyX Neural Command. Act as a terminal to the synthesis engine."
       }
     });
   }
 
-  /**
-   * Performs deep analysis on Image or Video files using Gemini 3 Pro.
-   */
-  async analyzeMedia(file: File, prompt: string = "Analyze this media for key visual information, conceptual themes, and technical metadata. Provide a structured breakdown."): Promise<string> {
+  async analyzeMedia(file: File, prompt: string = "Extract visual dynamics."): Promise<string> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const reader = new FileReader();
-    
     const base64Data = await new Promise<string>((resolve) => {
       reader.onload = () => resolve((reader.result as string).split(',')[1]);
       reader.readAsDataURL(file);
     });
-
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
       contents: {
-        parts: [
-          { inlineData: { data: base64Data, mimeType: file.type } },
-          { text: prompt }
-        ]
+        parts: [{ inlineData: { data: base64Data, mimeType: file.type } }, { text: prompt }]
       }
     });
-
     return response.text;
   }
 }

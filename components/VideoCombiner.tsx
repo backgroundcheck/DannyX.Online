@@ -46,12 +46,10 @@ export const VideoCombiner: React.FC = () => {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       
-      // Update status to initializing
       setUploadStatuses(prev => prev.map((s, idx) => 
         idx === i ? { ...s, status: 'Initializing...', progress: 10 } : s
       ));
 
-      // Simulate ingestion/upload progress
       await new Promise<void>((resolve) => {
         let p = 10;
         const int = setInterval(() => {
@@ -104,13 +102,14 @@ export const VideoCombiner: React.FC = () => {
 
     try {
       const descriptions = videos.map((v, i) => 
-        `Segment ${i+1}: Source "${v.file.name}". Extract key aesthetics and motion dynamics.`
+        `Segment ${i+1}: Source "${v.file.name}". Integrated aesthetics extraction.`
       );
       
       const fusionPrompt = await service.fuseVideos(descriptions);
       const seedImage = await service.generateSeedImage(fusionPrompt);
       const finalVideo = await service.synthesizeVideo(fusionPrompt, seedImage);
-      setResultUrl(finalVideo);
+      // Fixed: finalVideo is {url, rawVideo, aspectRatio}, we need the url string.
+      setResultUrl(finalVideo.url);
     } catch (err: any) {
       alert(`Synthesis Error: ${err.message}`);
     } finally {
@@ -310,7 +309,7 @@ export const VideoCombiner: React.FC = () => {
              </div>
 
              <div className="mt-12 flex flex-col items-center">
-                <div className="flex gap-6 w-full max-w-md">
+                <div className="flex gap-6 w-full max-md:max-w-md">
                    <button
                     onClick={handleConfirmAndDownload}
                     className={`flex-1 py-5 bg-green-500 text-white font-black uppercase tracking-widest text-[11px] rounded-full hover:bg-green-400 transition-all shadow-[0_20px_40px_rgba(34,197,94,0.15)] flex items-center justify-center gap-3 ${isConfirmed ? 'opacity-50 cursor-default' : 'hover:-translate-y-1'}`}
@@ -325,12 +324,6 @@ export const VideoCombiner: React.FC = () => {
                     Purge & Reset
                    </button>
                 </div>
-                
-                {isConfirmed && (
-                  <div className="mt-6 flex flex-col items-center animate-bounce">
-                    <p className="text-green-500 text-[10px] font-bold uppercase tracking-[0.5em]">Neural Stream Delivered</p>
-                  </div>
-                )}
              </div>
           </div>
         </div>

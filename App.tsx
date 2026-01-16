@@ -13,6 +13,7 @@ import { AboutSection } from './components/AboutSection';
 
 const App: React.FC = () => {
   const [mode, setMode] = useState<AppMode>('synthesis');
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [state, setState] = useState<SynthesisState>({
     isAnalyzing: false,
     isGeneratingPrompt: false,
@@ -56,37 +57,27 @@ const App: React.FC = () => {
     try {
       const synthesisService = new SynthesisService();
       const analysis = await analyzeAudioFile(file);
-      setState(prev => ({ ...prev, audioAnalysis: analysis, isAnalyzing: false, isGeneratingPrompt: true }));
-
-      const visualPrompt = await synthesisService.generateVisualPrompt(analysis);
-      setState(prev => ({ ...prev, prompt: visualPrompt, isGeneratingPrompt: false, isGeneratingSeed: true }));
-
-      const seedImage = await synthesisService.generateSeedImage(visualPrompt);
-      setState(prev => ({ ...prev, seedImageUrl: seedImage, isGeneratingSeed: false, isSynthesizingVideo: true }));
-
-      const videoUrlRes = await synthesisService.synthesizeVideo(visualPrompt, seedImage);
-      setState(prev => ({ ...prev, videoUrl: videoUrlRes.url, isSynthesizingVideo: false }));
+      setState(prev => ({ ...prev, audioAnalysis: analysis, isAnalyzing: false }));
     } catch (err: any) {
       if (err.message?.includes("Requested entity was not found.")) {
         setHasApiKey(false);
         handleSelectKey();
       }
-      setState(prev => ({ ...prev, error: err.message, isAnalyzing: false, isGeneratingPrompt: false, isGeneratingSeed: false, isSynthesizingVideo: false }));
+      setState(prev => ({ ...prev, error: err.message, isAnalyzing: false }));
     }
   };
 
   const renderContent = () => {
     if (!hasApiKey) return (
       <div className="text-center mt-10 md:mt-20 px-4 max-w-md mx-auto">
-        <h2 className="text-xl md:text-2xl font-bold mb-4 uppercase tracking-tighter">Authorization Required</h2>
+        <h2 className="text-xl md:text-2xl font-bold mb-4 uppercase tracking-tighter text-white">Authorization Required</h2>
         <p className="text-zinc-500 text-sm md:text-base mb-8 leading-relaxed">This high-performance engine requires direct access to Veo and Gemini models. Ensure you are using a paid API project.</p>
         <button onClick={handleSelectKey} className="w-full md:w-auto px-12 py-4 bg-white text-black font-black uppercase tracking-widest rounded-full hover:bg-zinc-200 transition-all">Select API Key</button>
       </div>
     );
 
     switch (mode) {
-      case 'visual-studio': return <VisualStudio />;
-      case 'neural-chat': return <ChatInterface />;
+      case 'visual-studio': return <VisualStudio analysis={state.audioAnalysis} />;
       case 'combine': return <VideoCombiner />;
       case 'analyzer': return <NeuralAnalyzer />;
       case 'about': return <AboutSection />;
@@ -100,8 +91,8 @@ const App: React.FC = () => {
           <div className="w-full flex flex-col items-center px-4">
              {state.error && <div className="mb-6 w-full max-w-4xl p-4 bg-red-900/20 border border-red-500/50 rounded-xl text-red-400 text-xs md:text-sm">Error: {state.error}</div>}
              <SynthesisDashboard state={state} />
-             {(state.videoUrl || state.error) && (
-               <button onClick={() => { setAudioFile(null); setState(s => ({ ...s, videoUrl: null })); }} className="mt-12 text-zinc-500 hover:text-white transition-colors text-[10px] md:text-sm uppercase tracking-widest font-black py-4 px-8 border border-zinc-800 rounded-full">New Synthesis</button>
+             {(state.videoUrl || state.error || (!state.isAnalyzing && !state.videoUrl)) && (
+               <button onClick={() => { setAudioFile(null); setState(s => ({ ...s, videoUrl: null, audioAnalysis: null })); }} className="mt-12 text-zinc-500 hover:text-white transition-colors text-[10px] md:text-sm uppercase tracking-widest font-black py-4 px-8 border border-zinc-800 rounded-full">New Synthesis Session</button>
              )}
           </div>
         );
@@ -130,11 +121,10 @@ const App: React.FC = () => {
           <div className="w-full flex flex-col items-center gap-8">
             <nav className="flex bg-zinc-900/50 p-1.5 rounded-full border border-zinc-800/80 backdrop-blur-xl overflow-x-auto no-scrollbar scroll-smooth shadow-2xl shadow-black/50">
               {[
-                { id: 'synthesis', label: 'Synthesis' },
-                { id: 'combine', label: 'Combine' },
-                { id: 'analyzer', label: 'Analyzer' },
-                { id: 'visual-studio', label: 'Studio' },
-                { id: 'neural-chat', label: 'Fast Chat' }
+                { id: 'synthesis', label: 'Dashboard' },
+                { id: 'combine', label: 'Fusion' },
+                { id: 'analyzer', label: 'Perception' },
+                { id: 'visual-studio', label: 'Studio' }
               ].map((m) => (
                 <button 
                   key={m.id}
@@ -146,7 +136,7 @@ const App: React.FC = () => {
               ))}
             </nav>
 
-            <div className="flex items-center justify-center gap-8 md:gap-12">
+            <div className="flex items-center justify-center gap-6 md:gap-10">
               <button 
                 onClick={() => setMode('about')}
                 className={`flex items-center gap-3 group transition-all duration-500 ${mode === 'about' ? 'opacity-100' : 'opacity-40 hover:opacity-100'}`}
@@ -155,6 +145,16 @@ const App: React.FC = () => {
                   <span className={`text-[11px] font-black font-mono transition-colors ${mode === 'about' ? 'text-purple-400' : 'text-zinc-500'}`}>?</span>
                 </div>
                 <span className={`text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] transition-colors ${mode === 'about' ? 'text-white' : 'text-zinc-600 group-hover:text-zinc-400'}`}>About</span>
+              </button>
+
+              <button 
+                onClick={() => setIsChatOpen(!isChatOpen)}
+                className={`flex items-center gap-3 group transition-all duration-500 ${isChatOpen ? 'opacity-100' : 'opacity-40 hover:opacity-100'}`}
+              >
+                <div className={`w-7 h-7 rounded-full border flex items-center justify-center transition-all duration-500 ${isChatOpen ? 'border-blue-500 bg-blue-500/10 shadow-[0_0_15px_rgba(59,130,246,0.3)]' : 'border-zinc-800 bg-transparent'}`}>
+                  <span className={`text-[10px] font-black font-mono transition-colors ${isChatOpen ? 'text-blue-400' : 'text-zinc-500'}`}>{'>_'}</span>
+                </div>
+                <span className={`text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] transition-colors ${isChatOpen ? 'text-white' : 'text-zinc-600 group-hover:text-zinc-400'}`}>Neural Command</span>
               </button>
 
               <div className={`flex items-center gap-3 text-[9px] md:text-[10px] font-mono uppercase font-black tracking-[0.2em] px-4 py-2 bg-zinc-900/30 rounded-full border border-zinc-800/50 ${hasApiKey ? 'text-green-500' : 'text-red-500'}`}>
@@ -169,6 +169,13 @@ const App: React.FC = () => {
       <main className="w-full max-w-7xl flex justify-center flex-1">
         {renderContent()}
       </main>
+
+      <ChatInterface 
+        isOpen={isChatOpen} 
+        onClose={() => setIsChatOpen(false)} 
+        audioFile={audioFile} 
+        analysis={state.audioAnalysis}
+      />
 
       <footer className="mt-16 md:mt-24 pb-10 w-full text-center text-[8px] md:text-[10px] text-zinc-600 uppercase tracking-[0.3em] px-4 opacity-50 font-black">
         &copy; {new Date().getFullYear()} DannyX Laboratories // Kernel V3.2 Stable // Multiscreen Encoded

@@ -24,7 +24,7 @@ export interface SynthesisState {
   audioAnalysis: AudioAnalysis | null;
 }
 
-export type AppMode = 'synthesis' | 'visual-studio' | 'neural-chat' | 'combine' | 'analyzer' | 'about';
+export type AppMode = 'synthesis' | 'visual-studio' | 'combine' | 'analyzer' | 'about';
 
 export interface ChatMessage {
   role: 'user' | 'model';

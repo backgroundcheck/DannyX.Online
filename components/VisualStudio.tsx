@@ -1,10 +1,16 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { SynthesisService } from '../services/gemini';
 import { ProcessingHUD } from './ProcessingHUD';
+import { AudioAnalysis } from '../types';
 
-export const VisualStudio: React.FC = () => {
+interface Props {
+  analysis: AudioAnalysis | null;
+}
+
+export const VisualStudio: React.FC<Props> = ({ analysis }) => {
   const [prompt, setPrompt] = useState('');
+  const [promptHistory, setPromptHistory] = useState<string[]>([]);
   const [isRefined, setIsRefined] = useState(false);
   const [aspectRatio, setAspectRatio] = useState('16:9');
   const [orientation, setOrientation] = useState<'16:9' | '9:16'>('16:9');
@@ -14,17 +20,34 @@ export const VisualStudio: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isAuditing, setIsAuditing] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
+  const [isSuggesting, setIsSuggesting] = useState(false);
   const [auditResults, setAuditResults] = useState<string | null>(null);
   const [type, setType] = useState<'image' | 'video'>('image');
   
-  // Refinement Parameters
+  // Neural Parameters for Suggester
+  const [intensity, setIntensity] = useState(50);
+  const [absurdity, setAbsurdity] = useState(25);
+
   const [targetLength, setTargetLength] = useState(8); 
   const [encodingQuality, setEncodingQuality] = useState<'720p' | '1080p'>('1080p');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const service = new SynthesisService();
+  const service = useRef(new SynthesisService());
 
   const ratios = ['1:1', '3:4', '4:3', '9:16', '16:9'];
+
+  // Load history on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('dannyx_prompt_history');
+    if (saved) setPromptHistory(JSON.parse(saved));
+  }, []);
+
+  const saveToHistory = (newPrompt: string) => {
+    if (!newPrompt.trim()) return;
+    const updated = [newPrompt, ...promptHistory.filter(h => h !== newPrompt)].slice(0, 8);
+    setPromptHistory(updated);
+    localStorage.setItem('dannyx_prompt_history', JSON.stringify(updated));
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -40,17 +63,19 @@ export const VisualStudio: React.FC = () => {
     setIsProcessing(true);
     setResultUrl(null);
     setAuditResults(null);
+    saveToHistory(prompt);
+    
     try {
       if (type === 'image') {
-        const url = await service.generateSeedImage(prompt, aspectRatio);
+        const url = await service.current.generateSeedImage(prompt, aspectRatio);
         setResultUrl(url);
       } else {
-        const res = await service.synthesizeVideo(prompt, uploadedImage || undefined, orientation, encodingQuality);
+        const res = await service.current.synthesizeVideo(prompt, uploadedImage || undefined, orientation, encodingQuality);
         let finalUrl = res.url;
         let currentRaw = res.rawVideo;
 
         if (targetLength > 8) {
-          const extension = await service.extendVideo(currentRaw, prompt);
+          const extension = await service.current.extendVideo(currentRaw, prompt);
           finalUrl = extension.url;
           currentRaw = extension.rawVideo;
         }
@@ -65,11 +90,28 @@ export const VisualStudio: React.FC = () => {
     }
   };
 
+  const handleNeuralSuggest = async () => {
+    if (!analysis) {
+      alert("No audio context detected. Upload audio in the dashboard first.");
+      return;
+    }
+    setIsSuggesting(true);
+    try {
+      const suggestedPrompt = await service.current.generateExpressPrompt(analysis, intensity, absurdity);
+      setPrompt(suggestedPrompt);
+      saveToHistory(suggestedPrompt);
+    } catch (err: any) {
+      alert(`Suggestion failed: ${err.message}`);
+    } finally {
+      setIsSuggesting(false);
+    }
+  };
+
   const handleAudit = async () => {
     if (!resultUrl || type !== 'video') return;
     setIsAuditing(true);
     try {
-      const report = await service.auditVideoStability(resultUrl);
+      const report = await service.current.auditVideoStability(resultUrl);
       setAuditResults(report);
     } catch (err: any) {
       alert(`Audit failed: ${err.message}`);
@@ -82,16 +124,11 @@ export const VisualStudio: React.FC = () => {
     if (!prompt || !auditResults) return;
     setIsRefining(true);
     try {
-      const newPrompt = await service.refineSynthesisPrompt(prompt, auditResults);
+      const newPrompt = await service.current.refineSynthesisPrompt(prompt, auditResults);
       setPrompt(newPrompt);
       setIsRefined(true);
       setAuditResults(null);
-      // Visual feedback
-      const textarea = document.querySelector('textarea');
-      if (textarea) {
-        textarea.classList.add('animate-pulse');
-        setTimeout(() => textarea.classList.remove('animate-pulse'), 2000);
-      }
+      saveToHistory(newPrompt);
     } catch (err: any) {
       alert(`Refinement failed: ${err.message}`);
     } finally {
@@ -116,19 +153,83 @@ export const VisualStudio: React.FC = () => {
             <button onClick={() => setType('video')} className={`flex-1 py-2 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${type === 'video' ? 'bg-zinc-800 text-white' : 'text-zinc-500'}`}>Video Gen</button>
           </div>
 
-          <div className="relative">
-            <div className="flex justify-between items-center mb-3">
-              <label className="block text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-zinc-500 font-black">Atmospheric Prompt</label>
-              {isRefined && (
-                <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded text-[7px] md:text-[8px] font-black uppercase tracking-widest animate-in fade-in zoom-in">Neuraly Refined</span>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <div className="flex justify-between text-[9px] md:text-[10px] font-mono uppercase tracking-widest">
+                  <span className="text-zinc-500">Intensity</span>
+                  <span className="text-blue-400">{intensity}%</span>
+                </div>
+                <input 
+                  type="range" min="0" max="100" value={intensity} 
+                  onChange={(e) => setIntensity(parseInt(e.target.value))}
+                  className="w-full accent-blue-500 h-1 bg-zinc-950 rounded-lg appearance-none cursor-pointer"
+                />
+              </div>
+              <div className="space-y-3">
+                <div className="flex justify-between text-[9px] md:text-[10px] font-mono uppercase tracking-widest">
+                  <span className="text-zinc-500">Absurdity</span>
+                  <span className="text-purple-400">{absurdity}%</span>
+                </div>
+                <input 
+                  type="range" min="0" max="100" value={absurdity} 
+                  onChange={(e) => setAbsurdity(parseInt(e.target.value))}
+                  className="w-full accent-purple-500 h-1 bg-zinc-950 rounded-lg appearance-none cursor-pointer"
+                />
+              </div>
+            </div>
+
+            <div className="relative">
+              <div className="flex justify-between items-center mb-3">
+                <label className="block text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-zinc-500 font-black">Atmospheric Prompt</label>
+                <div className="flex items-center gap-3">
+                  {isRefined && (
+                    <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded text-[7px] md:text-[8px] font-black uppercase tracking-widest animate-in fade-in zoom-in">Neuraly Refined</span>
+                  )}
+                  <button 
+                    onClick={handleNeuralSuggest}
+                    disabled={isSuggesting || !analysis}
+                    className="flex items-center gap-2 px-3 py-1 bg-zinc-800/50 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded-lg border border-zinc-700/50 transition-all text-[8px] md:text-[9px] font-black uppercase tracking-widest disabled:opacity-20 active:scale-95"
+                  >
+                    <span className={isSuggesting ? 'animate-spin' : ''}>✨</span>
+                    {isSuggesting ? 'Thinking...' : 'Neural Suggest'}
+                  </button>
+                </div>
+              </div>
+              <textarea
+                value={prompt}
+                onChange={(e) => { setPrompt(e.target.value); setIsRefined(false); }}
+                placeholder="Inject visual descriptions or use Neural Suggest..."
+                className="w-full h-24 md:h-32 bg-zinc-950 border border-zinc-800 rounded-2xl p-4 text-xs md:text-sm focus:outline-none focus:border-purple-500/50 transition-all resize-none font-mono leading-relaxed"
+              />
+              
+              {/* Prompt History List */}
+              {promptHistory.length > 0 && (
+                <div className="mt-4 animate-in fade-in slide-in-from-top-2">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[8px] uppercase tracking-[0.3em] text-zinc-600 font-black">Latent Recalls</span>
+                    <div className="h-px flex-1 bg-zinc-800/50" />
+                  </div>
+                  <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                    {promptHistory.map((h, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setPrompt(h)}
+                        className="flex-shrink-0 px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-[9px] font-mono text-zinc-500 hover:text-zinc-300 hover:border-zinc-700 transition-all max-w-[120px] truncate"
+                      >
+                        {h}
+                      </button>
+                    ))}
+                    <button 
+                      onClick={() => { setPromptHistory([]); localStorage.removeItem('dannyx_prompt_history'); }}
+                      className="flex-shrink-0 px-3 py-1.5 border border-red-900/20 text-red-900/40 text-[8px] font-black uppercase tracking-widest hover:text-red-500 transition-colors"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
-            <textarea
-              value={prompt}
-              onChange={(e) => { setPrompt(e.target.value); setIsRefined(false); }}
-              placeholder="Inject visual descriptions..."
-              className="w-full h-24 md:h-32 bg-zinc-950 border border-zinc-800 rounded-2xl p-4 text-xs md:text-sm focus:outline-none focus:border-purple-500/50 transition-all resize-none font-mono leading-relaxed"
-            />
           </div>
 
           {type === 'video' && (
