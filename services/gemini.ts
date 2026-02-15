@@ -2,7 +2,39 @@
 import { GoogleGenAI, Type, Chat } from "@google/genai";
 import { AudioAnalysis } from "../types";
 
+/**
+ * SynthesisService - Core orchestration layer for audiovisual synthesis
+ * 
+ * This service integrates Google's Gemini 3 and Veo 3.1 models to transform
+ * audio analysis data into immersive video content. It manages the complete
+ * synthesis pipeline from prompt generation through video creation, extension,
+ * and quality auditing.
+ * 
+ * Key Responsibilities:
+ * - Generate Veo-optimized prompts from audio analysis
+ * - Create seed images for video initialization
+ * - Orchestrate video synthesis with temporal stability
+ * - Extend video duration with coherent transitions
+ * - Audit generated videos for quality and stability
+ * - Provide fast chat interface for user interaction
+ * - Analyze media files for semantic and technical information
+ * 
+ * @class SynthesisService
+ */
 export class SynthesisService {
+  /**
+   * System role definition for the synthesis engine.
+   * 
+   * This comprehensive prompt defines the core behavior, constraints, and
+   * aesthetic principles for video generation. It ensures:
+   * - Audio-visual causality (sound drives all visual changes)
+   * - Organic, non-geometric visual style
+   * - Temporal stability and coherence
+   * - Immersive, continuously-generated feel
+   * - Proper branding and waveform integration
+   * 
+   * @private
+   */
   private systemRole = `
     SYSTEM ROLE
     You are an audiovisual synthesis engine generating a single immersive video.
@@ -98,6 +130,23 @@ export class SynthesisService {
     - Bottom-right: “DannyX.online” watermark, semi-transparent
   `;
 
+  /**
+   * Generates a master synthesis prompt for Veo 3.1 based on audio analysis.
+   * 
+   * Transforms technical audio features into a comprehensive visual description
+   * optimized for Veo's video generation capabilities. The prompt incorporates
+   * BPM, energy levels, mood, and user-specified intensity/absurdity parameters.
+   * 
+   * @param {AudioAnalysis} analysis - Audio analysis results from audioProcessor
+   * @param {number} intensity - Visual intensity multiplier (0-100)
+   * @param {number} absurdity - Surrealism/abstraction level (0-100)
+   * @returns {Promise<string>} Generated prompt text for Veo 3.1
+   * @throws {Error} If API call fails or response is invalid
+   * 
+   * @example
+   * const service = new SynthesisService();
+   * const prompt = await service.generateExpressPrompt(audioAnalysis, 75, 50);
+   */
   async generateExpressPrompt(analysis: AudioAnalysis, intensity: number, absurdity: number): Promise<string> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
@@ -114,6 +163,24 @@ export class SynthesisService {
     return response.text.trim();
   }
 
+  /**
+   * Generates a seed image using Gemini 3 Pro Image model.
+   * 
+   * Creates an initial visual frame that serves as the starting point for
+   * video synthesis. The seed image establishes the visual aesthetic and
+   * composition that will be animated by Veo.
+   * 
+   * @param {string} prompt - Text description for image generation
+   * @param {string} aspectRatio - Aspect ratio (default: "16:9", also supports "9:16")
+   * @returns {Promise<string>} Data URL of generated image (base64 encoded PNG)
+   * @throws {Error} If image generation fails or response contains no image data
+   * 
+   * @example
+   * const imageUrl = await service.generateSeedImage(
+   *   "Organic fluid textures in deep blue and purple", 
+   *   "16:9"
+   * );
+   */
   async generateSeedImage(prompt: string, aspectRatio: string = "16:9"): Promise<string> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
@@ -133,6 +200,30 @@ export class SynthesisService {
     throw new Error("No image data in response.");
   }
 
+  /**
+   * Synthesizes video using Veo 3.1 model.
+   * 
+   * Generates video from text prompt, optionally using a seed image for
+   * initial frame guidance. The process is asynchronous and may take 2-5 minutes.
+   * This method polls the operation status every 10 seconds until completion.
+   * 
+   * @param {string} prompt - Text description for video generation
+   * @param {string} [imageBase64] - Optional base64-encoded seed image
+   * @param {'16:9' | '9:16'} orientation - Video aspect ratio (default: '16:9')
+   * @param {'720p' | '1080p'} resolution - Video resolution (default: '1080p')
+   * @returns {Promise<{url: string, rawVideo: any, aspectRatio: string}>} 
+   *          Object containing video blob URL, raw video metadata, and aspect ratio
+   * @throws {Error} If video synthesis fails or times out
+   * 
+   * @example
+   * const result = await service.synthesizeVideo(
+   *   prompt, 
+   *   seedImageBase64, 
+   *   '16:9', 
+   *   '1080p'
+   * );
+   * videoElement.src = result.url;
+   */
   async synthesizeVideo(prompt: string, imageBase64?: string, orientation: '16:9' | '9:16' = '16:9', resolution: '720p' | '1080p' = '1080p'): Promise<any> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const config: any = {
@@ -172,6 +263,23 @@ export class SynthesisService {
     };
   }
 
+  /**
+   * Refines a synthesis prompt based on stability audit feedback.
+   * 
+   * Takes an original prompt and audit report, then generates an improved
+   * prompt that addresses identified stability issues (flickering, cuts, etc.).
+   * 
+   * @param {string} originalPrompt - The original Veo prompt
+   * @param {string} auditReport - Stability audit analysis text
+   * @returns {Promise<string>} Refined prompt with stability improvements
+   * @throws {Error} If API call fails
+   * 
+   * @example
+   * const refinedPrompt = await service.refineSynthesisPrompt(
+   *   originalPrompt,
+   *   "Detected temporal instability at 3-4s mark"
+   * );
+   */
   async refineSynthesisPrompt(originalPrompt: string, auditReport: string): Promise<string> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
@@ -181,6 +289,24 @@ export class SynthesisService {
     return response.text.trim();
   }
 
+  /**
+   * Extends an existing video using Veo's temporal extension API.
+   * 
+   * Takes an 8-second video clip and extends it to approximately 15 seconds
+   * with coherent motion continuation. The extension maintains visual consistency
+   * and narrative flow from the original clip.
+   * 
+   * @param {any} previousVideo - Raw video object from previous synthesis
+   * @param {string} prompt - Continuation prompt describing desired motion/evolution
+   * @returns {Promise<{url: string, rawVideo: any}>} Extended video with blob URL
+   * @throws {Error} If extension fails or operation times out
+   * 
+   * @example
+   * const extended = await service.extendVideo(
+   *   previousVideoRaw,
+   *   "Continue the organic flow with increasing turbulence"
+   * );
+   */
   async extendVideo(previousVideo: any, prompt: string): Promise<any> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     let operation = await ai.models.generateVideos({
@@ -208,6 +334,21 @@ export class SynthesisService {
     };
   }
 
+  /**
+   * Performs stability audit on a generated video using Gemini 3 Pro.
+   * 
+   * Analyzes video for temporal artifacts, scene cuts (which are forbidden),
+   * motion coherence, and overall quality. Returns detailed assessment that
+   * can be used to refine future generations.
+   * 
+   * @param {string} videoUrl - URL of video to audit (blob or HTTP URL)
+   * @returns {Promise<string>} Detailed stability audit report
+   * @throws {Error} If video fetch fails or analysis cannot be performed
+   * 
+   * @example
+   * const audit = await service.auditVideoStability(videoUrl);
+   * console.log("Stability report:", audit);
+   */
   async auditVideoStability(videoUrl: string): Promise<string> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await fetch(videoUrl);
@@ -231,6 +372,24 @@ export class SynthesisService {
     return auditResponse.text;
   }
 
+  /**
+   * Fuses multiple video prompts into a unified master prompt.
+   * 
+   * Analyzes multiple visual descriptions and synthesizes them into a single
+   * cohesive prompt that captures the combined aesthetic, maintaining organic
+   * flow and avoiding jarring transitions.
+   * 
+   * @param {string[]} videoPrompts - Array of individual video prompt descriptions
+   * @returns {Promise<string>} Unified master synthesis prompt
+   * @throws {Error} If fusion generation fails
+   * 
+   * @example
+   * const masterPrompt = await service.fuseVideos([
+   *   "Deep blue organic flows",
+   *   "Purple crystalline structures",
+   *   "Turbulent golden waves"
+   * ]);
+   */
   async fuseVideos(videoPrompts: string[]): Promise<string> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
@@ -240,6 +399,19 @@ export class SynthesisService {
     return response.text.trim();
   }
 
+  /**
+   * Creates a fast chat interface using Gemini 2.5 Flash Lite.
+   * 
+   * Initializes a low-latency chat session for technical queries and engine
+   * commands. The chat inherits the system role and acts as a terminal interface
+   * to the synthesis engine.
+   * 
+   * @returns {Chat} Configured chat instance
+   * 
+   * @example
+   * const chat = service.createFastChat();
+   * const response = await chat.sendMessage("Explain the BPM analysis");
+   */
   createFastChat(): Chat {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     return ai.chats.create({
@@ -250,6 +422,23 @@ export class SynthesisService {
     });
   }
 
+  /**
+   * Analyzes uploaded media files (images or videos) using Gemini 3 Pro.
+   * 
+   * Extracts semantic information, technical details, and visual dynamics
+   * from uploaded media. Supports custom analysis prompts for specific queries.
+   * 
+   * @param {File} file - Media file to analyze (image or video)
+   * @param {string} prompt - Analysis instruction (default: "Extract visual dynamics.")
+   * @returns {Promise<string>} Detailed analysis report
+   * @throws {Error} If file reading or analysis fails
+   * 
+   * @example
+   * const analysis = await service.analyzeMedia(
+   *   videoFile,
+   *   "Describe the color palette and motion patterns"
+   * );
+   */
   async analyzeMedia(file: File, prompt: string = "Extract visual dynamics."): Promise<string> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const reader = new FileReader();
