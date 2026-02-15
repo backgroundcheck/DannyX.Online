@@ -3,10 +3,37 @@ import React, { useMemo } from 'react';
 import { SynthesisState } from '../types';
 import { ProcessingHUD } from './ProcessingHUD';
 
+/**
+ * Props for the SynthesisDashboard component.
+ */
 interface Props {
+  /** Current state of the synthesis pipeline */
   state: SynthesisState;
 }
 
+/**
+ * SynthesisDashboard Component
+ * 
+ * The main dashboard displaying synthesis progress, audio analysis results,
+ * and the generated video output. This component visualizes the entire
+ * synthesis pipeline from audio analysis through video generation.
+ * 
+ * Features:
+ * - Progress tracking through 4 synthesis stages
+ * - Dynamic styling based on audio characteristics (BPM, energy, spectral centroid)
+ * - Audio analysis statistics display
+ * - Video player with fluid waveform overlay
+ * - Download functionality for generated videos
+ * 
+ * The component uses audio analysis data to create audio-reactive visual effects,
+ * including BPM-synchronized animations and frequency-based color shifts.
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <SynthesisDashboard state={synthesisState} />
+ * ```
+ */
 export const SynthesisDashboard: React.FC<Props> = ({ state }) => {
   const { isAnalyzing, isGeneratingPrompt, isGeneratingSeed, isSynthesizingVideo, audioAnalysis, prompt } = state;
 

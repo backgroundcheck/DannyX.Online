@@ -11,6 +11,27 @@ import { VideoCombiner } from './components/VideoCombiner';
 import { NeuralAnalyzer } from './components/NeuralAnalyzer';
 import { AboutSection } from './components/AboutSection';
 
+/**
+ * App Component
+ * 
+ * Root component of the DannyX.Online application. Manages global application state,
+ * routing between different operational modes, and orchestrates the synthesis pipeline.
+ * 
+ * The application features five primary modes:
+ * - synthesis: Main audio-to-video synthesis dashboard
+ * - visual-studio: Manual text-to-image/video generation workspace
+ * - combine: Multi-stream video fusion interface
+ * - analyzer: Media perception and analysis tool
+ * - about: Feature documentation and system information
+ * 
+ * State Management:
+ * - Tracks current application mode and UI state
+ * - Manages synthesis pipeline state through multiple stages
+ * - Handles API key authentication via AI Studio integration
+ * - Maintains uploaded audio file and analysis results
+ * 
+ * @component
+ */
 const App: React.FC = () => {
   const [mode, setMode] = useState<AppMode>('synthesis');
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -52,6 +73,18 @@ const App: React.FC = () => {
     }
   };
 
+  /**
+   * Initiates the audio analysis and synthesis pipeline.
+   * 
+   * Process:
+   * 1. Sets analyzing state and clears previous errors/results
+   * 2. Instantiates SynthesisService
+   * 3. Analyzes audio file to extract features
+   * 4. Updates state with analysis results
+   * 5. Handles authentication errors if API key is invalid
+   * 
+   * @param {File} file - Audio file to analyze and synthesize
+   */
   const startSynthesis = async (file: File) => {
     setState(prev => ({ ...prev, isAnalyzing: true, error: null, videoUrl: null }));
     try {

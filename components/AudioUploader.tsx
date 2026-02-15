@@ -1,11 +1,35 @@
 
 import React, { useRef } from 'react';
 
+/**
+ * Props for the AudioUploader component.
+ */
 interface Props {
+  /** Callback function triggered when a file is selected */
   onFileSelect: (file: File) => void;
+  
+  /** Whether the uploader should be disabled (e.g., during processing) */
   disabled?: boolean;
 }
 
+/**
+ * AudioUploader Component
+ * 
+ * Provides a user interface for uploading audio files to initialize the synthesis process.
+ * Features a drag-and-drop style interface with hover effects and file type validation.
+ * 
+ * The component only accepts audio files (enforced by HTML accept attribute) and
+ * triggers the onFileSelect callback when a valid file is chosen.
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <AudioUploader 
+ *   onFileSelect={(file) => startAnalysis(file)} 
+ *   disabled={isProcessing}
+ * />
+ * ```
+ */
 export const AudioUploader: React.FC<Props> = ({ onFileSelect, disabled }) => {
   const inputRef = useRef<HTMLInputElement>(null);
 
